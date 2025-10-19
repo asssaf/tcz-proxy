@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 )
@@ -138,6 +139,11 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Don't run main in test mode
+	if len(os.Args) > 1 && os.Args[1] == "test" {
+		return
+	}
+
 	// Define mirror servers - add your mirrors here
 	mirrors := []string{
 		"https://mirror1.example.com",
