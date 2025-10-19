@@ -2,7 +2,7 @@
 
 # Default host to proxy requests to
 # This is used when no path mapping matches
-default_host: http://distro.ibiblio.org
+default_host: http://tinycorelinux.net
 
 # Whether to automatically follow redirects
 # When true, the proxy follows redirects and returns the final response to the client
