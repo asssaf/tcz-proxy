@@ -17,5 +17,9 @@ path_mappings:
   # Example: Redirect watchdog.tcz to GitHub releases
   # Matches: /repo/14.x/aarch64/tcz/watchdog.tcz
   # Results in: https://github.com/asssaf/picore-watchdog/releases/download/14/watchdog-aarch64.zip
-  - from: .*/(\d+)\.x/(aarch64|armhf)/tcz/tryboot\.tcz(.*)
-    to: https://github.com/asssaf/picore-tryboot/releases/download/v0.0.1/tryboot.tcz$3
+  - from: .*/(\d+)\.x/(aarch64|armhf)/tcz/(tryboot)\.tcz(.*)
+    to: https://raw.githubusercontent.com/asssaf/picore-$3/refs/heads/tcz-v0.0.1/$1.x/$2/tcz/$3.tcz$4
+  - from: .*/(\d+)\.x/(aarch64|armhf)/tcz/(busybox-system)\.tcz(.*)
+    to: https://raw.githubusercontent.com/asssaf/picore-$3/refs/heads/tcz-v0.0.1/$1.x/$2/tcz/$3.tcz$4
+  - from: .*/(\d+)\.x/(aarch64|armhf)/tcz/(watchdog)\.tcz(.*)
+    to: https://raw.githubusercontent.com/asssaf/picore-$3/refs/heads/tcz-v0.0.1/$1.x/$2/tcz/$3.tcz$4
