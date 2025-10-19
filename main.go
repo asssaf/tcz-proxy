@@ -192,10 +192,29 @@ func main() {
 	}
 
 	configFile := flag.String("config", "config.yaml", "Path to configuration file")
-	port := flag.String("port", "8080", "Port to listen on")
+	port := flag.String("port", "", "Port to listen on (defaults to PORT env var or 8080)")
 	hostOverride := flag.String("host", "", "Override default host from config")
 	followRedirectsFlag := flag.Bool("follow-redirects", false, "Follow redirects automatically")
 	flag.Parse()
+
+	// Check environment variables
+	if configFileEnv := os.Getenv("CONFIG_FILE"); configFileEnv != "" && *configFile == "config.yaml" {
+		*configFile = configFileEnv
+	}
+
+	if followRedirectsEnv := os.Getenv("FOLLOW_REDIRECTS"); followRedirectsEnv == "true" && !*followRedirectsFlag {
+		*followRedirectsFlag = true
+	}
+
+	// Determine port: flag > PORT env var > default 8080
+	listenPort := *port
+	if listenPort == "" {
+		if portEnv := os.Getenv("PORT"); portEnv != "" {
+			listenPort = portEnv
+		} else {
+			listenPort = "8080"
+		}
+	}
 
 	// Load configuration
 	config, err := loadConfig(*configFile)
@@ -225,7 +244,7 @@ func main() {
 	}
 
 	// Display configuration
-	fmt.Printf("Starting tcz-proxy on port %s\n", *port)
+	fmt.Printf("Starting tcz-proxy on port %s\n", listenPort)
 	if defaultHost != "" {
 		fmt.Printf("Default host: %s\n", defaultHost)
 	}
@@ -239,7 +258,7 @@ func main() {
 	fmt.Println()
 
 	// Start server
-	addr := ":" + *port
+	addr := ":" + listenPort
 	log.Printf("Listening on %s", addr)
 	if err := http.ListenAndServe(addr, proxy); err != nil {
 		log.Fatal(err)

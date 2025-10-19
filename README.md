@@ -26,6 +26,30 @@ go build -o tcz-proxy
 go run main.go
 ```
 
+## Deployment Options
+
+### Local Deployment
+
+Run the proxy on your local machine or server:
+
+```bash
+./tcz-proxy -config config.yaml -port 8080
+```
+
+### Google App Engine Deployment
+
+Deploy to Google Cloud Platform's App Engine Standard Environment:
+
+```bash
+# Deploy to App Engine
+gcloud app deploy
+
+# View deployment
+gcloud app browse
+```
+
+See [DEPLOY.md](DEPLOY.md) for detailed deployment instructions, configuration options, and cost optimization tips.
+
 ## Dependencies
 
 ```bash
@@ -180,8 +204,11 @@ tcz-proxy/
 ├── main.go           # Main proxy implementation
 ├── main_test.go      # Comprehensive unit tests
 ├── config.yaml       # Configuration file
+├── app.yaml          # Google App Engine configuration
+├── .gcloudignore     # Files to exclude from GAE deployment
+├── go.mod            # Go module file
 ├── README.md         # This file
-└── go.mod           # Go module file
+└── DEPLOY.md         # Google App Engine deployment guide
 ```
 
 ## Error Handling

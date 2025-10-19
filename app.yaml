@@ -1,0 +1,42 @@
+runtime: go125
+
+# Entrypoint is automatically determined for Go apps
+# The app will listen on PORT environment variable
+
+env_variables:
+  # These can be overridden at deployment time
+  CONFIG_FILE: "config.yaml"
+  FOLLOW_REDIRECTS: "false"
+
+# Automatic scaling configuration
+automatic_scaling:
+  min_idle_instances: 0
+  max_idle_instances: 1
+  min_pending_latency: 30ms
+  max_pending_latency: automatic
+  max_concurrent_requests: 80
+
+# Instance class - F1 is the smallest and cheapest
+instance_class: F1
+
+# Handlers
+handlers:
+  # Serve all traffic to the Go app
+  - url: /.*
+    script: auto
+    secure: optional
+
+# Health checks (optional but recommended)
+readiness_check:
+  path: "/"
+  check_interval_sec: 5
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+
+liveness_check:
+  path: "/"
+  check_interval_sec: 30
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2

@@ -299,15 +299,6 @@ func TestServeHTTP_PreservesHeaders(t *testing.T) {
 	}
 }
 
-	if headerChecks["User-Agent"] != "test-agent" {
-		t.Error("User-Agent header not preserved")
-	}
-
-	if headerChecks["X-Custom"] != "custom-value" {
-		t.Error("Custom header not preserved")
-	}
-}
-
 func TestLoadConfig(t *testing.T) {
 	// Create a temporary config file
 	configContent := `default_host: https://example.com
