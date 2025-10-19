@@ -2,7 +2,12 @@
 
 # Default host to proxy requests to
 # This is used when no path mapping matches
-default_host: https://repo.example.com
+default_host: http://distro.ibiblio.org
+
+# Whether to automatically follow redirects
+# When true, the proxy follows redirects and returns the final response to the client
+# When false (default), the proxy returns redirect responses as-is
+follow_redirects: true
 
 # Path mappings for redirecting specific patterns to different destinations
 # Each mapping consists of:
@@ -12,13 +17,5 @@ path_mappings:
   # Example: Redirect watchdog.tcz to GitHub releases
   # Matches: /repo/14.x/aarch64/tcz/watchdog.tcz
   # Results in: https://github.com/asssaf/picore-watchdog/releases/download/14/watchdog-aarch64.zip
-  - from: .*/(\d+)\.x/(aarch64|armhf)/tcz/watchdog\.tcz
-    to: https://github.com/asssaf/picore-watchdog/releases/download/$1/watchdog-$2.zip
-
-  # Example: Redirect API calls to a different server
-  - from: /api/v(\d+)/(.+)
-    to: https://api.example.com/v$1/$2
-
-  # Example: Redirect specific packages to a mirror
-  - from: /packages/(\d+\.x)/(.+)/(.+\.tcz)
-    to: https://mirror.example.org/tinycorelinux/$1/$2/$3
+  - from: .*/(\d+)\.x/(aarch64|armhf)/tcz/tryboot\.tcz(.*)
+    to: https://github.com/asssaf/picore-tryboot/releases/download/v0.0.1/tryboot.tcz$3

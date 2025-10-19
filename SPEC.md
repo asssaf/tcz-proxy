@@ -13,6 +13,7 @@ Build an HTTP proxy server that:
 The proxy reads from a YAML config file (default `config.yaml`, override with `-config` flag):
 ```yaml
 default_host: https://repo.example.com
+follow_redirects: false
 path_mappings:
   - from: .*/(\d+)\.x/(aarch64|armhf)/tcz/watchdog\.tcz
     to: https://github.com/asssaf/picore-watchdog/releases/download/$1/watchdog-$2.zip
@@ -28,13 +29,15 @@ path_mappings:
 - `-config string`: Path to config file (default "config.yaml")
 - `-port string`: Port to listen on (default "8080")
 - `-host string`: Override default_host from config
+- `-follow-redirects bool`: Enable automatic redirect following (overrides config)
 
 ## Requirements
 1. **main.go**: Complete proxy implementation with:
-   - `Config` struct for YAML parsing
-   - `Proxy` struct with compiled regex patterns
+   - `Config` struct for YAML parsing (with follow_redirects field)
+   - `Proxy` struct with compiled regex patterns and redirect handling
    - `ServeHTTP` method implementing the proxy logic
    - `loadConfig` function for YAML parsing
+   - Configurable redirect following behavior
    - Proper error handling and logging
 
 2. **main_test.go**: Comprehensive unit tests covering:
@@ -43,6 +46,7 @@ path_mappings:
    - Default host fallback
    - Header and query parameter preservation
    - Config file loading (valid/invalid cases)
+   - Redirect following behavior (enabled and disabled)
    - End-to-end request/response flow using httptest
 
 3. **config.yaml**: Example configuration with the watchdog.tcz pattern

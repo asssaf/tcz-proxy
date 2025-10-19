@@ -14,7 +14,7 @@ func TestNewProxy(t *testing.T) {
 		{From: `/test/(\d+)`, To: `https://example.com/$1`},
 	}
 
-	proxy, err := NewProxy("https://default.com", mappings)
+	proxy, err := NewProxy("https://default.com", mappings, false)
 	if err != nil {
 		t.Fatalf("NewProxy failed: %v", err)
 	}
@@ -34,6 +34,10 @@ func TestNewProxy(t *testing.T) {
 	if len(proxy.compiledMappings) != 1 {
 		t.Errorf("Expected 1 compiled mapping, got %d", len(proxy.compiledMappings))
 	}
+
+	if proxy.followRedirects != false {
+		t.Error("Expected followRedirects to be false")
+	}
 }
 
 func TestNewProxy_InvalidRegex(t *testing.T) {
@@ -41,7 +45,7 @@ func TestNewProxy_InvalidRegex(t *testing.T) {
 		{From: `[invalid(regex`, To: `https://example.com`},
 	}
 
-	_, err := NewProxy("https://default.com", mappings)
+	_, err := NewProxy("https://default.com", mappings, false)
 	if err == nil {
 		t.Error("Expected error for invalid regex, got nil")
 	}
@@ -57,7 +61,7 @@ func TestFindMapping(t *testing.T) {
 		{From: `/api/v(\d+)/users`, To: `https://api.example.com/v$1/users`},
 	}
 
-	proxy, err := NewProxy("https://default.com", mappings)
+	proxy, err := NewProxy("https://default.com", mappings, false)
 	if err != nil {
 		t.Fatalf("Failed to create proxy: %v", err)
 	}
@@ -114,7 +118,7 @@ func TestBuildTargetURL_WithMapping(t *testing.T) {
 		{From: `/test/(\d+)`, To: `https://mapped.com/item/$1`},
 	}
 
-	proxy, _ := NewProxy("https://default.com", mappings)
+	proxy, _ := NewProxy("https://default.com", mappings, false)
 
 	req := httptest.NewRequest("GET", "http://localhost/test/123", nil)
 	targetURL, err := proxy.buildTargetURL(req)
@@ -130,7 +134,7 @@ func TestBuildTargetURL_WithMapping(t *testing.T) {
 }
 
 func TestBuildTargetURL_WithDefaultHost(t *testing.T) {
-	proxy, _ := NewProxy("https://default.com", nil)
+	proxy, _ := NewProxy("https://default.com", nil, false)
 
 	req := httptest.NewRequest("GET", "http://localhost/some/path?key=value", nil)
 	targetURL, err := proxy.buildTargetURL(req)
@@ -146,7 +150,7 @@ func TestBuildTargetURL_WithDefaultHost(t *testing.T) {
 }
 
 func TestBuildTargetURL_NoDefaultNoMapping(t *testing.T) {
-	proxy, _ := NewProxy("", nil)
+	proxy, _ := NewProxy("", nil, false)
 
 	req := httptest.NewRequest("GET", "http://localhost/test", nil)
 	_, err := proxy.buildTargetURL(req)
@@ -164,7 +168,7 @@ func TestServeHTTP_WithDefaultHost(t *testing.T) {
 	}))
 	defer backend.Close()
 
-	proxy, _ := NewProxy(backend.URL, nil)
+	proxy, _ := NewProxy(backend.URL, nil, false)
 
 	req := httptest.NewRequest("GET", "http://localhost/test/path", nil)
 	req.Header.Set("User-Agent", "test-agent")
@@ -202,7 +206,7 @@ func TestServeHTTP_WithPathMapping(t *testing.T) {
 		{From: `/test/(\d+)`, To: backend.URL + `/mapped/$1`},
 	}
 
-	proxy, _ := NewProxy("https://default.com", mappings)
+	proxy, _ := NewProxy("https://default.com", mappings, false)
 
 	req := httptest.NewRequest("GET", "http://localhost/test/456", nil)
 	w := httptest.NewRecorder()
@@ -231,7 +235,7 @@ func TestServeHTTP_HTTPSMapping(t *testing.T) {
 		{From: `/github/(.+)`, To: `https://httpbin.org/status/$1`},
 	}
 
-	proxy, _ := NewProxy("http://localhost", mappings)
+	proxy, _ := NewProxy("http://localhost", mappings, false)
 
 	req := httptest.NewRequest("GET", "http://localhost/github/200", nil)
 	w := httptest.NewRecorder()
@@ -255,7 +259,7 @@ func TestServeHTTP_PreservesQueryParams(t *testing.T) {
 	}))
 	defer backend.Close()
 
-	proxy, _ := NewProxy(backend.URL, nil)
+	proxy, _ := NewProxy(backend.URL, nil, false)
 
 	req := httptest.NewRequest("GET", "http://localhost/path?key1=value1&key2=value2", nil)
 	w := httptest.NewRecorder()
@@ -277,7 +281,7 @@ func TestServeHTTP_PreservesHeaders(t *testing.T) {
 	}))
 	defer backend.Close()
 
-	proxy, _ := NewProxy(backend.URL, nil)
+	proxy, _ := NewProxy(backend.URL, nil, false)
 
 	req := httptest.NewRequest("GET", "http://localhost/test", nil)
 	req.Header.Set("User-Agent", "test-agent")
@@ -285,6 +289,15 @@ func TestServeHTTP_PreservesHeaders(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	proxy.ServeHTTP(w, req)
+
+	if headerChecks["User-Agent"] != "test-agent" {
+		t.Error("User-Agent header not preserved")
+	}
+
+	if headerChecks["X-Custom"] != "custom-value" {
+		t.Error("Custom header not preserved")
+	}
+}
 
 	if headerChecks["User-Agent"] != "test-agent" {
 		t.Error("User-Agent header not preserved")
@@ -373,7 +386,7 @@ func TestComplexRegexMapping(t *testing.T) {
 		{From: `.*/(\d+)\.x/(aarch64|armhf)/tcz/watchdog\.tcz`, To: `https://github.com/asssaf/picore-watchdog/releases/download/$1/watchdog-$2.zip`},
 	}
 
-	proxy, err := NewProxy("https://default.com", mappings)
+	proxy, err := NewProxy("https://default.com", mappings, false)
 	if err != nil {
 		t.Fatalf("Failed to create proxy: %v", err)
 	}
@@ -402,5 +415,100 @@ func TestComplexRegexMapping(t *testing.T) {
 				t.Errorf("Expected '%s', got '%s'", tt.expected, result)
 			}
 		})
+	}
+}
+
+func TestFollowRedirects_Disabled(t *testing.T) {
+	// Backend that redirects
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/redirect" {
+			http.Redirect(w, r, "/final", http.StatusFound)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("final content"))
+	}))
+	defer backend.Close()
+
+	proxy, _ := NewProxy(backend.URL, nil, false)
+
+	req := httptest.NewRequest("GET", "http://localhost/redirect", nil)
+	w := httptest.NewRecorder()
+
+	proxy.ServeHTTP(w, req)
+
+	resp := w.Result()
+
+	// Should return the redirect response, not follow it
+	if resp.StatusCode != http.StatusFound {
+		t.Errorf("Expected status 302, got %d", resp.StatusCode)
+	}
+
+	location := resp.Header.Get("Location")
+	if location != "/final" {
+		t.Errorf("Expected Location header '/final', got '%s'", location)
+	}
+}
+
+func TestFollowRedirects_Enabled(t *testing.T) {
+	// Backend that redirects
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/redirect" {
+			http.Redirect(w, r, "/final", http.StatusFound)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("final content"))
+	}))
+	defer backend.Close()
+
+	proxy, _ := NewProxy(backend.URL, nil, true)
+
+	req := httptest.NewRequest("GET", "http://localhost/redirect", nil)
+	w := httptest.NewRecorder()
+
+	proxy.ServeHTTP(w, req)
+
+	resp := w.Result()
+	body, _ := io.ReadAll(resp.Body)
+
+	// Should follow the redirect and return final content
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+
+	if string(body) != "final content" {
+		t.Errorf("Expected body 'final content', got '%s'", string(body))
+	}
+}
+
+func TestLoadConfig_WithFollowRedirects(t *testing.T) {
+	configContent := `default_host: https://example.com
+follow_redirects: true
+path_mappings:
+  - from: /test/(\d+)
+    to: https://mapped.com/$1
+`
+
+	tmpfile, err := os.CreateTemp("", "config*.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpfile.Name())
+
+	if _, err := tmpfile.Write([]byte(configContent)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tmpfile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	config, err := loadConfig(tmpfile.Name())
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if !config.FollowRedirects {
+		t.Error("Expected follow_redirects to be true")
 	}
 }

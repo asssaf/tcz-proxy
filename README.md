@@ -9,6 +9,7 @@ A flexible HTTP proxy server written in Go that can redirect requests based on r
 - **HTTPS Support**: Handle HTTPS destinations even when clients connect via HTTP
 - **Capture Groups**: Use regex capture groups to construct dynamic destination URLs
 - **Command Line Overrides**: Override configuration via command line flags
+- **Automatic Redirect Following**: Optionally follow redirects automatically so clients receive final responses
 - **Comprehensive Testing**: Full test suite included
 
 ## Installation
@@ -38,6 +39,8 @@ Create a `config.yaml` file:
 ```yaml
 default_host: https://repo.example.com
 
+follow_redirects: true
+
 path_mappings:
   - from: .*/(\d+)\.x/(aarch64|armhf)/tcz/watchdog\.tcz
     to: https://github.com/asssaf/picore-watchdog/releases/download/$1/watchdog-$2.zip
@@ -49,6 +52,7 @@ path_mappings:
 ### Configuration Options
 
 - **default_host**: The default host to proxy requests to when no path mapping matches
+- **follow_redirects**: Boolean flag to automatically follow redirects (default: false)
 - **path_mappings**: Array of path mapping rules
   - **from**: Regex pattern to match against the request path
   - **to**: Destination URL with support for capture group references ($1, $2, etc.)
@@ -69,6 +73,9 @@ path_mappings:
 
 # Override the default host
 ./tcz-proxy -host https://mirror.example.com
+
+# Enable automatic redirect following
+./tcz-proxy -follow-redirects
 ```
 
 ### Command Line Flags
@@ -76,6 +83,7 @@ path_mappings:
 - `-config`: Path to configuration file (default: "config.yaml")
 - `-port`: Port to listen on (default: "8080")
 - `-host`: Override default host from config file
+- `-follow-redirects`: Enable automatic redirect following (overrides config file setting)
 
 ### Making Requests
 

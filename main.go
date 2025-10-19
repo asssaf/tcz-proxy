@@ -20,8 +20,9 @@ type PathMapping struct {
 }
 
 type Config struct {
-	DefaultHost  string        `yaml:"default_host"`
-	PathMappings []PathMapping `yaml:"path_mappings"`
+	DefaultHost     string        `yaml:"default_host"`
+	PathMappings    []PathMapping `yaml:"path_mappings"`
+	FollowRedirects bool          `yaml:"follow_redirects"`
 }
 
 type compiledMapping struct {
@@ -30,12 +31,13 @@ type compiledMapping struct {
 }
 
 type Proxy struct {
-	client          *http.Client
-	defaultHost     string
+	client           *http.Client
+	defaultHost      string
 	compiledMappings []compiledMapping
+	followRedirects  bool
 }
 
-func NewProxy(defaultHost string, mappings []PathMapping) (*Proxy, error) {
+func NewProxy(defaultHost string, mappings []PathMapping, followRedirects bool) (*Proxy, error) {
 	var compiled []compiledMapping
 	
 	for _, mapping := range mappings {
@@ -49,15 +51,22 @@ func NewProxy(defaultHost string, mappings []PathMapping) (*Proxy, error) {
 		})
 	}
 
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// Configure redirect behavior
+	if !followRedirects {
+		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+	}
+
 	return &Proxy{
-		client: &http.Client{
-			Timeout: 30 * time.Second,
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				return http.ErrUseLastResponse
-			},
-		},
+		client:           client,
 		defaultHost:      defaultHost,
 		compiledMappings: compiled,
+		followRedirects:  followRedirects,
 	}, nil
 }
 
@@ -185,6 +194,7 @@ func main() {
 	configFile := flag.String("config", "config.yaml", "Path to configuration file")
 	port := flag.String("port", "8080", "Port to listen on")
 	hostOverride := flag.String("host", "", "Override default host from config")
+	followRedirectsFlag := flag.Bool("follow-redirects", false, "Follow redirects automatically")
 	flag.Parse()
 
 	// Load configuration
@@ -201,8 +211,15 @@ func main() {
 		log.Printf("Using host override: %s", defaultHost)
 	}
 
+	// Determine follow redirects setting (command line takes precedence)
+	followRedirects := config.FollowRedirects
+	if *followRedirectsFlag {
+		followRedirects = true
+		log.Printf("Following redirects enabled via command line")
+	}
+
 	// Create proxy
-	proxy, err := NewProxy(defaultHost, config.PathMappings)
+	proxy, err := NewProxy(defaultHost, config.PathMappings, followRedirects)
 	if err != nil {
 		log.Fatalf("Failed to create proxy: %v", err)
 	}
@@ -212,6 +229,7 @@ func main() {
 	if defaultHost != "" {
 		fmt.Printf("Default host: %s\n", defaultHost)
 	}
+	fmt.Printf("Follow redirects: %v\n", followRedirects)
 	if len(config.PathMappings) > 0 {
 		fmt.Printf("Path mappings (%d):\n", len(config.PathMappings))
 		for i, mapping := range config.PathMappings {
