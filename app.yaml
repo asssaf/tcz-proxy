@@ -25,18 +25,3 @@ handlers:
   - url: /.*
     script: auto
     secure: optional
-
-# Health checks (optional but recommended)
-readiness_check:
-  path: "/"
-  check_interval_sec: 5
-  timeout_sec: 4
-  failure_threshold: 2
-  success_threshold: 2
-
-liveness_check:
-  path: "/"
-  check_interval_sec: 30
-  timeout_sec: 4
-  failure_threshold: 2
-  success_threshold: 2
